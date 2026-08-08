@@ -5,16 +5,7 @@ from fastmcp import FastMCP, Context
 
 
 from rank_bm25 import BM25Okapi
-import sys
 
-PROJECT_ROOT = os.path.abspath(
-    os.path.join(os.path.dirname(__file__), "..")
-)
-
-if PROJECT_ROOT not in sys.path:
-    sys.path.insert(0, PROJECT_ROOT)
-
-from memory.manager import MemoryManager
 # Knowledge Base (RAG)
 
 knowledge_documents = [
@@ -46,7 +37,6 @@ bm25 = BM25Okapi(tokenized_docs)
 
 
 mcp = FastMCP("Brightpeak Academy Server")
-memory_manager = MemoryManager()
 
 
 DB_PATH = os.path.join(os.path.dirname(__file__), "..", "DB", "db", "brightpeak.db")
@@ -385,26 +375,7 @@ def search_knowledge_base(query: str, top_k: int = 3) -> dict:
     }
 
 import sys
-@mcp.tool(
-    name="add_student_memory",
-    description="Stores a student message in the Brightpeak Academy memory system."
-)
-def add_student_memory(
-    student_id: int,
-    role: str,
-    content: str
-) -> dict:
 
-    result = memory_manager.add_message(
-        role=role,
-        content=content,
-        student_id=student_id
-    )
-
-    return {
-        "status": "success",
-        "memory_result": result
-    }
 if __name__ == "__main__":
 
     if len(sys.argv) > 1 and sys.argv[1] == "http":

@@ -1,0 +1,122 @@
+[
+  {
+    "id": "ATT-001",
+    "title": "Attendance Policy",
+    "category": "attendance",
+    "department": "Academic Affairs",
+    "version": "2026",
+    "text": "Students must maintain at least 75% attendance to be eligible to take final examinations. Students whose attendance falls between 65% and 74% may submit an approved excuse or attendance petition. Students with attendance below 65% may be prohibited from taking the final examination. The attendance requirement applies to undergraduate courses unless a course-specific policy states otherwise."
+  },
+  {
+    "id": "GRD-001",
+    "title": "Grading Policy",
+    "category": "grading",
+    "department": "Academic Affairs",
+    "version": "2026",
+    "text": "A final course grade of 60% or above is considered passing. Grades below 60% are considered failing. Final grades are calculated from the assessment components defined by each course. Students who fail a course may be required to repeat the course according to the applicable academic regulations."
+  },
+  {
+    "id": "REG-001",
+    "title": "Course Registration Policy",
+    "category": "registration",
+    "department": "Academic Affairs",
+    "version": "2026",
+    "text": "Students must satisfy all required prerequisites before registering for a course. Course registration is subject to seat availability and the student's academic standing. Students with registration restrictions must resolve the relevant restriction before completing enrollment. Prerequisite requirements may vary between courses."
+  },
+  {
+    "id": "WARN-001",
+    "title": "Academic Warning Policy",
+    "category": "academic_warning",
+    "department": "Academic Affairs",
+    "version": "2026",
+    "text": "Students whose academic performance falls below the required academic standard may receive an academic warning. Students under academic warning should meet with their academic advisor and follow the recommended academic improvement plan. Continued poor academic performance may result in additional academic restrictions."
+  },
+  {
+    "id": "GRAD-001",
+    "title": "Graduation Requirements",
+    "category": "graduation",
+    "department": "Academic Affairs",
+    "version": "2026",
+    "text": "Students must complete all required courses, satisfy the required credit-hour total, complete required academic requirements, and meet any applicable program-specific conditions before graduation. Completing individual courses does not automatically guarantee graduation eligibility."
+  },
+  {
+    "id": "EXM-001",
+    "title": "Final Examination Eligibility",
+    "category": "examinations",
+    "department": "Academic Affairs",
+    "version": "2026",
+    "text": "A student is eligible to take a final examination when the student satisfies the applicable attendance requirement and has no unresolved restriction that prevents examination participation. The standard attendance threshold is defined by policy ATT-001. Course-specific examination rules may impose additional requirements."
+  },
+  {
+    "id": "PRE-001",
+    "title": "Course Prerequisite Policy",
+    "category": "prerequisites",
+    "department": "Academic Affairs",
+    "version": "2026",
+    "text": "Some courses require students to successfully complete prerequisite courses before registration. A prerequisite may be satisfied only when the required prerequisite course has been successfully completed according to the grading policy. Students should verify prerequisite requirements before attempting course registration."
+  },
+  {
+    "id": "RET-001",
+    "title": "Course Retake Policy",
+    "category": "retake",
+    "department": "Academic Affairs",
+    "version": "2026",
+    "text": "Students who fail a course may be required or permitted to retake the course according to the academic regulations. A failing grade is a final course grade below the passing threshold defined in GRD-001. Retaking a course does not remove the requirement to satisfy the program's total credit-hour and graduation requirements."
+  },
+  {
+    "id": "WDR-001",
+    "title": "Course Withdrawal Policy",
+    "category": "withdrawal",
+    "department": "Academic Affairs",
+    "version": "2026",
+    "text": "Students may request withdrawal from an eligible course during the permitted withdrawal period. Withdrawal requests must follow the applicable academic procedure and may require advisor approval. A withdrawal is different from failing a course and does not by itself satisfy the course requirement for graduation."
+  },
+  {
+    "id": "REG-002",
+    "title": "Registration Restriction Policy",
+    "category": "registration",
+    "department": "Academic Affairs",
+    "version": "2026",
+    "text": "Students with unresolved academic or administrative restrictions may be prevented from completing course registration. A student must resolve the restriction through the appropriate university process before registration can be completed. Registration availability also depends on course capacity and prerequisite requirements."
+  },
+  {
+    "id": "ADV-001",
+    "title": "Academic Advising Policy",
+    "category": "advising",
+    "department": "Student Affairs",
+    "version": "2026",
+    "text": "Students may consult their academic advisor regarding course planning, prerequisites, academic warnings, graduation requirements, and registration restrictions. Students receiving an academic warning are expected to seek academic advising and follow the recommended improvement plan."
+  },
+  {
+    "id": "CERT-001",
+    "title": "Certificate Policy",
+    "category": "certificates",
+    "department": "Academic Affairs",
+    "version": "2026",
+    "text": "Students may receive certificates for eligible completed academic courses or programs according to the applicable certificate requirements. Certificate issuance requires completion of the relevant academic requirements. Certificate records should be associated with the student's academic record and the corresponding course or program."
+  },
+  {
+    "id": "TRN-001",
+    "title": "Transcript Policy",
+    "category": "transcripts",
+    "department": "Academic Affairs",
+    "version": "2026",
+    "text": "A student's academic transcript contains relevant academic records such as completed courses and recorded grades. Transcript information is used to evaluate academic progress, prerequisite completion, and graduation requirements. Students should refer to their official academic record when verifying completed coursework."
+  },
+  {
+    "id": "PRG-001",
+    "title": "Academic Progress Policy",
+    "category": "academic_progress",
+    "department": "Academic Affairs",
+    "version": "2026",
+    "text": "Academic progress is evaluated using course completion, grades, credit requirements, and applicable academic regulations. Students are expected to monitor their academic progress and resolve academic restrictions that may affect registration or graduation. Poor academic performance may result in an academic warning under WARN-001."
+  },
+  {
+    "id": "POL-001",
+    "title": "Academic Policy Reference Guide",
+    "category": "policy_reference",
+    "department": "Academic Affairs",
+    "version": "2026",
+    "text": "The BrightPeak academic policies are interconnected. Attendance requirements affect final examination eligibility. Grading requirements determine whether a course is passed. Prerequisite completion affects course registration. Academic performance may lead to an academic warning. Graduation requires completion of required courses and credit-hour requirements. Students should consult the relevant policy when multiple academic conditions apply."
+  }
+  ]
