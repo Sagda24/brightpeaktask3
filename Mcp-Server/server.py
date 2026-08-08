@@ -5,36 +5,14 @@ from fastmcp import FastMCP, Context
 
 
 from rank_bm25 import BM25Okapi
-
-# Knowledge Base (RAG)
-
-knowledge_documents = [
-    {
-        "title": "Attendance Policy",
-        "text": "Students must maintain at least 75% attendance in every course. Students below this limit may be prevented from taking the final exam."
-    },
-    {
-        "title": "Grading Policy",
-        "text": "Grades are assigned on a scale from 0 to 100. A grade of 60 or above is considered a passing grade."
-    },
-    {
-        "title": "Course Registration",
-        "text": "Students may enroll only in courses for which all prerequisites have been completed successfully."
-    },
-    {
-        "title": "Academic Warning",
-        "text": "Students with poor academic performance may receive an academic warning and should meet their academic advisor."
-    },
-    {
-        "title": "Graduation Requirements",
-        "text": "Students must complete all required courses and earn the required credit hours before graduation."
-    }
+from rag.knowledge_base.loader import load_knowledge_base
+knowledge_documents = load_knowledge_base()
+tokenized_docs = [
+    doc["text"].lower().split()
+    for doc in knowledge_documents
 ]
 
-tokenized_docs = [doc["text"].lower().split() for doc in knowledge_documents]
-
 bm25 = BM25Okapi(tokenized_docs)
-
 
 mcp = FastMCP("Brightpeak Academy Server")
 
