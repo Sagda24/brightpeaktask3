@@ -1,0 +1,62 @@
+[
+  {
+    "id": "Q1",
+    "question": "What attendance percentage is required to take the final examination?",
+    "expected_documents": ["ATT-001"],
+    "expected_architecture": "naive"
+  },
+  {
+    "id": "Q2",
+    "question": "What does REG-002 say about registration restrictions?",
+    "expected_documents": ["REG-002"],
+    "expected_architecture": "hybrid"
+  },
+  {
+    "id": "Q3",
+    "question": "What must a student do before registering for a course, and what should they do if they have a registration restriction?",
+    "expected_documents": ["REG-001", "REG-002"],
+    "expected_architecture": "agentic"
+  },
+  {
+    "id": "Q4",
+    "question": "What grade is considered passing?",
+    "expected_documents": ["GRD-001"],
+    "expected_architecture": "naive"
+  },
+  {
+    "id": "Q5",
+    "question": "Can a student graduate after completing individual courses?",
+    "expected_documents": ["GRAD-001"],
+    "expected_architecture": "naive"
+  },
+  {
+    "id": "Q6",
+    "question": "What happens when a student's academic performance falls below the required standard?",
+    "expected_documents": ["WARN-001"],
+    "expected_architecture": "naive"
+  },
+  {
+    "id": "Q7",
+    "question": "Which policy defines the prerequisites required before course registration?",
+    "expected_documents": ["REG-001", "PRE-001"],
+    "expected_architecture": "hybrid"
+  },
+  {
+    "id": "Q8",
+    "question": "A student has a registration restriction and wants to enroll in a course. What restriction-related action and prerequisite requirement should they consider?",
+    "expected_documents": ["REG-001", "REG-002"],
+    "expected_architecture": "agentic"
+  },
+  {
+    "id": "Q9",
+    "question": "What are the consequences of continued poor academic performance?",
+    "expected_documents": ["WARN-001", "PRG-001"],
+    "expected_architecture": "agentic"
+  },
+  {
+    "id": "Q10",
+    "question": "What is the policy identifier REG-002?",
+    "expected_documents": ["REG-002"],
+    "expected_architecture": "hybrid"
+  }
+]

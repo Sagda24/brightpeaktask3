@@ -4,8 +4,11 @@ from fastmcp.client import (
     StreamableHttpTransport
 )
 from mcp.types import SamplingCapability
+
 import asyncio
 import os
+import sys
+
 
 # ======================================================
 # Path to the MCP Server
@@ -19,7 +22,7 @@ SERVER_FILE = os.path.abspath(
         "server.py"
     )
 )
-import sys
+
 
 # ======================================================
 # Transport Configuration
@@ -75,23 +78,38 @@ async def sampling_handler(messages, params, context):
 
     print("\n========== Generating Response ==========\n")
 
-    response = """
+    # --------------------------------------------------
+    # Handle query decomposition
+    # --------------------------------------------------
+
+    if "Break the following question into 2-4 simpler sub-questions" in prompt:
+
+        return """1. What are the requirements for registering a course?
+2. What should a student do if they have a registration restriction?"""
+
+
+    # --------------------------------------------------
+    # Existing student evaluation response
+    # --------------------------------------------------
+
+    return """
 Overall Performance:
 Excellent
 
 Strengths:
+
 - Strong performance in core courses.
 - High grades in completed subjects.
 - Consistent academic achievement.
 
 Weaknesses:
+
 - One course is still in progress.
 
 Recommendation:
+
 Continue maintaining the current performance and focus on completing the remaining courses with the same level of excellence.
 """
-
-    return response
 
 
 # ======================================================
@@ -116,41 +134,64 @@ async def main():
 
         print("✅ Connected to Brightpeak MCP Server!")
 
-        # ------------------------------------------------
+
+        # ==================================================
         # List Tools
-        # ------------------------------------------------
+        # ==================================================
 
         tools = await client.list_tools()
 
         print("\n========== Available Tools ==========\n")
 
         for tool in tools:
+
             print(f"Tool Name: {tool.name}")
             print(f"Description: {tool.description}")
             print("-" * 50)
 
-        # ------------------------------------------------
+
+        # ==================================================
         # list_all_courses
-        # ------------------------------------------------
+        # ==================================================
 
-        print("\n========== Calling list_all_courses ==========\n")
+        print(
+            "\n========== Calling list_all_courses ==========\n"
+        )
 
-        result = await client.call_tool("list_all_courses")
+        result = await client.call_tool(
+            "list_all_courses"
+        )
 
         courses = result.data["courses"]
 
         for course in courses:
-            print(f"Course ID   : {course['course_id']}")
-            print(f"Title       : {course['title']}")
-            print(f"Instructor  : {course['instructor_name']}")
-            print(f"Credits     : {course['credits']}")
+
+            print(
+                f"Course ID   : {course['course_id']}"
+            )
+
+            print(
+                f"Title       : {course['title']}"
+            )
+
+            print(
+                f"Instructor  : {course['instructor_name']}"
+            )
+
+            print(
+                f"Credits     : {course['credits']}"
+            )
+
             print("-" * 40)
 
-        # ------------------------------------------------
-        # get_student_profile
-        # ------------------------------------------------
 
-        print("\n========== Calling get_student_profile ==========\n")
+        # ==================================================
+        # get_student_profile
+        # ==================================================
+
+        print(
+            "\n========== Calling get_student_profile ==========\n"
+        )
 
         result = await client.call_tool(
             "get_student_profile",
@@ -161,23 +202,44 @@ async def main():
 
         student = result.data["data"]
 
-        print(f"Name  : {student['name']}")
-        print(f"Email : {student['email']}")
-        print(f"Role  : {student['role']}")
+        print(
+            f"Name  : {student['name']}"
+        )
+
+        print(
+            f"Email : {student['email']}"
+        )
+
+        print(
+            f"Role  : {student['role']}"
+        )
 
         print("\nCourses:")
 
         for course in student["enrolled_courses"]:
-            print(f"Course : {course['title']}")
-            print(f"Grade  : {course['grade']}")
-            print(f"Status : {course['status']}")
+
+            print(
+                f"Course : {course['title']}"
+            )
+
+            print(
+                f"Grade  : {course['grade']}"
+            )
+
+            print(
+                f"Status : {course['status']}"
+            )
+
             print("-" * 30)
 
-        # ------------------------------------------------
-        # update_student_grade
-        # ------------------------------------------------
 
-        print("\n========== Calling update_student_grade ==========\n")
+        # ==================================================
+        # update_student_grade
+        # ==================================================
+
+        print(
+            "\n========== Calling update_student_grade ==========\n"
+        )
 
         result = await client.call_tool(
             "update_student_grade",
@@ -191,11 +253,14 @@ async def main():
 
         print(result.data)
 
-        # ------------------------------------------------
-        # Verify Update
-        # ------------------------------------------------
 
-        print("\n========== Verify Updated Student ==========\n")
+        # ==================================================
+        # Verify Updated Student
+        # ==================================================
+
+        print(
+            "\n========== Verify Updated Student ==========\n"
+        )
 
         result = await client.call_tool(
             "get_student_profile",
@@ -207,23 +272,32 @@ async def main():
         student = result.data["data"]
 
         for course in student["enrolled_courses"]:
+
             print(course)
 
-        # ------------------------------------------------
+
+        # ==================================================
         # generate_academic_report
-        # ------------------------------------------------
+        # ==================================================
 
-        print("\n========== Calling generate_academic_report ==========\n")
+        print(
+            "\n========== Calling generate_academic_report ==========\n"
+        )
 
-        result = await client.call_tool("generate_academic_report")
+        result = await client.call_tool(
+            "generate_academic_report"
+        )
 
         print(result.data)
 
-        # ------------------------------------------------
-        # request_student_evaluation
-        # ------------------------------------------------
 
-        print("\n========== Calling request_student_evaluation ==========\n")
+        # ==================================================
+        # request_student_evaluation
+        # ==================================================
+
+        print(
+            "\n========== Calling request_student_evaluation ==========\n"
+        )
 
         result = await client.call_tool(
             "request_student_evaluation",
@@ -234,18 +308,28 @@ async def main():
 
         evaluation = result.data["evaluation"]
 
-        print("\n========== Student Evaluation ==========\n")
+        print(
+            "\n========== Student Evaluation ==========\n"
+        )
+
         print("=" * 60)
+
         print("STUDENT EVALUATION")
+
         print("=" * 60)
+
         print(evaluation.strip())
+
         print("=" * 60)
 
-        # ------------------------------------------------
-        # search_knowledge_base
-        # ------------------------------------------------
 
-        print("\n========== Calling search_knowledge_base ==========\n")
+        # ==================================================
+        # search_knowledge_base
+        # ==================================================
+
+        print(
+            "\n========== Calling search_knowledge_base ==========\n"
+        )
 
         result = await client.call_tool(
             "search_knowledge_base",
@@ -258,5 +342,108 @@ async def main():
         print(result.data)
 
 
+        # ==================================================
+        # decompose_and_search
+        # ==================================================
+
+        print(
+            "\n" + "=" * 70
+        )
+
+        print(
+            "CALLING DECOMPOSE_AND_SEARCH"
+        )
+
+        print(
+            "=" * 70
+        )
+
+
+        # --------------------------------------------------
+        # Compound question
+        # --------------------------------------------------
+
+        compound_query = (
+            "What are the requirements for registering a course, "
+            "and what should a student do if they have a "
+            "registration restriction?"
+        )
+
+
+        # --------------------------------------------------
+        # Call the new MCP tool
+        # --------------------------------------------------
+
+        result = await client.call_tool(
+            "decompose_and_search",
+            {
+                "query": compound_query,
+                "top_k": 3
+            }
+        )
+
+
+        # --------------------------------------------------
+        # Read response
+        # --------------------------------------------------
+
+        data = result.data
+
+
+        print("\nOriginal Query:")
+
+        print(
+            data["original_query"]
+        )
+
+
+        print(
+            "\n" + "-" * 70
+        )
+
+        print(
+            "DECOMPOSED RETRIEVAL RESULTS"
+        )
+
+        print(
+            "-" * 70
+        )
+
+
+        # --------------------------------------------------
+        # Display retrieved chunks
+        # --------------------------------------------------
+
+        for i, item in enumerate(
+            data["results"],
+            1
+        ):
+
+            print(
+                f"\nResult #{i}"
+            )
+
+            print(
+                f"Sub-question: {item['sub_question']}"
+            )
+
+            print(
+                f"Score       : {item['score']}"
+            )
+
+            print(
+                f"Content     : {item['content']}"
+            )
+
+            print(
+                "-" * 70
+            )
+
+
+# ======================================================
+# Run Client
+# ======================================================
+
 if __name__ == "__main__":
+
     asyncio.run(main())
