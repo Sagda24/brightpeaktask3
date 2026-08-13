@@ -1,7 +1,8 @@
 from rag.knowledge_base.loader import load_knowledge_base
 from rag.vector_store import VectorStore
-
 from sentence_transformers import SentenceTransformer
+from rag.generation import build_rag_prompt
+from rag.self_rag import self_rag_verify
 
 
 # ============================================================
@@ -104,7 +105,7 @@ def build_vector_store():
 
 
 # ============================================================
-# NAIVE RAG RETRIEVAL
+# INITIALIZE VECTOR STORE
 # ============================================================
 
 embedding_model, vector_store, chunks = (
@@ -112,7 +113,14 @@ embedding_model, vector_store, chunks = (
 )
 
 
-def retrieve(query, top_k=TOP_K):
+# ============================================================
+# NAIVE RAG RETRIEVAL
+# ============================================================
+
+def retrieve(
+    query,
+    top_k=TOP_K
+):
 
     query_embedding = embedding_model.encode(
         [query],
@@ -147,16 +155,122 @@ def build_context(results):
 
 
 # ============================================================
-# TEST
+# NAIVE RAG ANSWER
+# ============================================================
+
+async def naive_rag_answer(
+    query,
+    ctx,
+    top_k=TOP_K
+):
+
+    # --------------------------------------------------------
+    # 1. Retrieve
+    # --------------------------------------------------------
+
+    results = retrieve(
+        query,
+        top_k=top_k
+    )
+
+    # --------------------------------------------------------
+    # 2. Self-RAG retrieval relevance check
+    # --------------------------------------------------------
+
+    from rag.self_rag import check_retrieval_relevance
+
+    relevance_check = check_retrieval_relevance(
+        query,
+        results
+    )
+
+    if not relevance_check["passed"]:
+
+        return {
+            "status": "verification_failed",
+            "stage": "retrieval",
+            "verification": relevance_check,
+            "results": []
+        }
+
+    # --------------------------------------------------------
+    # 3. Build grounded RAG prompt
+    # --------------------------------------------------------
+
+    prompt = build_rag_prompt(
+        query,
+        results
+    )
+
+    # --------------------------------------------------------
+    # 4. Generate answer using MCP client model
+    # --------------------------------------------------------
+
+    response = await ctx.sample(
+        messages=prompt,
+        max_tokens=300
+    )
+
+    answer = response.text
+
+    # --------------------------------------------------------
+    # 5. Self-RAG support verification
+    # --------------------------------------------------------
+
+    verification = self_rag_verify(
+        query,
+        results,
+        answer
+    )
+
+    if not verification["approved"]:
+
+        return {
+            "status": "verification_failed",
+            "stage": "generation",
+            "answer": answer,
+            "verification": verification,
+            "sources": [
+                result["document_id"]
+                for result in results
+            ]
+        }
+
+    # --------------------------------------------------------
+    # 6. Successful response
+    # --------------------------------------------------------
+
+    return {
+        "status": "success",
+        "answer": answer,
+        "sources": [
+            {
+                "document_id": result["document_id"],
+                "title": result["title"]
+            }
+            for result in results
+        ],
+        "verification": verification
+    }
+
+
+# ============================================================
+# TEST RETRIEVAL
 # ============================================================
 
 if __name__ == "__main__":
 
-    print("Documents:", len(
-        load_knowledge_base()
-    ))
+    documents = load_knowledge_base()
 
-    print("Chunks:", len(chunks))
+    print(
+        "Documents:",
+        len(documents)
+    )
+
+    print(
+        "Chunks:",
+        len(chunks)
+    )
 
     question = (
         "What attendance percentage "
@@ -179,8 +293,28 @@ if __name__ == "__main__":
     ):
 
         print("\n-------------------")
-        print("Rank:", i)
-        print("Document:", result["document_id"])
-        print("Title:", result["title"])
-        print("Score:", result["score"])
-        print("Text:", result["text"])
+
+        print(
+            "Rank:",
+            i
+        )
+
+        print(
+            "Document:",
+            result["document_id"]
+        )
+
+        print(
+            "Title:",
+            result["title"]
+        )
+
+        print(
+            "Score:",
+            result["score"]
+        )
+
+        print(
+            "Text:",
+            result["text"]
+        )

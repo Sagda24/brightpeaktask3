@@ -1,9 +1,25 @@
+import os
+import sys
+
+PROJECT_ROOT = os.path.abspath(
+    os.path.join(os.path.dirname(__file__), "..")
+)
+
+if PROJECT_ROOT not in sys.path:
+    sys.path.insert(0, PROJECT_ROOT)
+
 import sqlite3
 import os
 import re
 from fastmcp import FastMCP, Context
+<<<<<<< HEAD
 
+=======
+from rag.decompose_search import combine_search
+>>>>>>> e8e4b65400287e84b473a30037bc1345c5541dc4
 from rank_bm25 import BM25Okapi
+from rag.hybrid_rag import hybrid_search
+from rag.agentic_rag import agentic_retrieve
 from rag.knowledge_base.loader import load_knowledge_base
 from rag.query_decomposition import DECOMPOSE_PROMPT, parse_sub_questions
 
@@ -354,6 +370,7 @@ def _search_knowledge_base_impl(query: str, top_k: int = 3) -> dict:
         "results": results
     }
 
+<<<<<<< HEAD
 
 @mcp.tool(
     name="search_knowledge_base",
@@ -362,10 +379,74 @@ def _search_knowledge_base_impl(query: str, top_k: int = 3) -> dict:
 def search_knowledge_base(query: str, top_k: int = 3) -> dict:
     return _search_knowledge_base_impl(query, top_k)
 
+=======
+@mcp.tool(
+    name="naive_rag",
+    description=(
+        "Answers academic knowledge questions "
+        "using Naive RAG with vector retrieval "
+        "and Self-RAG verification."
+    )
+)
+async def naive_rag(
+    query: str,
+    ctx: Context
+) -> dict:
+
+    return await naive_rag_answer(
+        query,
+        ctx
+    )
+
+@mcp.tool(
+    name="hybrid_rag",
+    description=(
+        "Retrieves academy knowledge using "
+        "vector similarity and BM25 keyword search."
+    )
+)
+def hybrid_rag(
+    query: str,
+    top_k: int = 3
+) -> dict:
+
+    results = hybrid_search(
+        query,
+        top_k=top_k
+    )
+
+    return {
+        "status": "success",
+        "results": results
+    }
+
+@mcp.tool(
+    name="hybrid_rag",
+    description=(
+        "Retrieves academy knowledge using "
+        "vector similarity and BM25 keyword search."
+    )
+)
+def hybrid_rag(
+    query: str,
+    top_k: int = 3
+) -> dict:
+
+    results = hybrid_search(
+        query,
+        top_k=top_k
+    )
+
+    return {
+        "status": "success",
+        "results": results
+    }
+>>>>>>> e8e4b65400287e84b473a30037bc1345c5541dc4
 
 @mcp.tool(
     name="decompose_and_search",
     description=(
+<<<<<<< HEAD
             "For compound, multi-part questions: splits the question into 2-4 "
             "simpler sub-questions via an LLM call, runs the existing "
             "search_knowledge_base once per sub-question, and returns every "
@@ -403,15 +484,52 @@ async def decompose_and_search(query: str, ctx: Context, top_k: int = 3) -> dict
             "sub_questions": sub_questions,
             "results": [],
         }
+=======
+        "Decomposes a compound question into smaller sub-questions "
+        "and searches the knowledge base for each one."
+    )
+)
+async def decompose_and_search(
+    query: str,
+    top_k: int = 3,
+    ctx: Context = None
+) -> dict:
+
+    if top_k < 1:
+        top_k = 1
+
+    if top_k > 5:
+        top_k = 5
+
+    results = await combine_search(
+        query=query,
+        search_tool=search_knowledge_base,
+        ctx=ctx,
+        top_k=top_k
+    )
+>>>>>>> e8e4b65400287e84b473a30037bc1345c5541dc4
 
     return {
         "status": "success",
         "original_query": query,
+<<<<<<< HEAD
         "sub_questions": sub_questions,
         "results": tagged_results,
     }
 
 
+=======
+        "results": [
+            {
+                "sub_question": result.sub_question,
+                "content": result.chunk,
+                "score": result.score
+            }
+            for result in results
+        ]
+    }
+
+>>>>>>> e8e4b65400287e84b473a30037bc1345c5541dc4
 import sys
 
 if __name__ == "__main__":
