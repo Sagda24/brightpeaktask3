@@ -3,9 +3,10 @@ import os
 import re
 from fastmcp import FastMCP, Context
 
-
 from rank_bm25 import BM25Okapi
 from rag.knowledge_base.loader import load_knowledge_base
+from rag.query_decomposition import DECOMPOSE_PROMPT, parse_sub_questions
+
 knowledge_documents = load_knowledge_base()
 tokenized_docs = [
     doc["text"].lower().split()
@@ -16,11 +17,10 @@ bm25 = BM25Okapi(tokenized_docs)
 
 mcp = FastMCP("Brightpeak Academy Server")
 
-
 DB_PATH = os.path.join(os.path.dirname(__file__), "..", "DB", "db", "brightpeak.db")
 
-def get_db_connection():
 
+def get_db_connection():
     conn = sqlite3.connect(DB_PATH)
     conn.row_factory = sqlite3.Row
     return conn
@@ -35,11 +35,11 @@ def get_student_profile(email: str) -> dict:
 
     conn = get_db_connection()
     cursor = conn.cursor()
-    
-    # 2. Logic Validation:     
+
+    # 2. Logic Validation:
     cursor.execute("SELECT * FROM students WHERE email = ?", (email,))
     student = cursor.fetchone()
-    
+
     if not student:
         conn.close()
         return {"status": "error", "message": f"Student with email '{email}' not found."}
@@ -69,10 +69,9 @@ def get_student_profile(email: str) -> dict:
 
 @mcp.tool()
 def list_all_courses() -> dict:
-
     conn = get_db_connection()
     cursor = conn.cursor()
-    
+
     query = """
         SELECT c.course_id, c.title, c.credits, i.name as instructor_name
         FROM courses c
@@ -81,7 +80,7 @@ def list_all_courses() -> dict:
     cursor.execute(query)
     rows = cursor.fetchall()
     conn.close()
-    
+
     return {
         "status": "success",
         "courses": [dict(row) for row in rows]
@@ -90,9 +89,7 @@ def list_all_courses() -> dict:
 
 @mcp.tool()
 def enroll_student(student_id: int, course_id: int) -> dict:
-    
-    
-    # 1. Input Validation: 
+    # 1. Input Validation:
     if student_id <= 0 or course_id <= 0:
         return {"status": "error", "message": "Student ID and Course ID must be positive integers."}
 
@@ -100,19 +97,19 @@ def enroll_student(student_id: int, course_id: int) -> dict:
     cursor = conn.cursor()
 
     try:
-        # 2. Logic Validation   
+        # 2. Logic Validation
         cursor.execute("SELECT student_id FROM students WHERE student_id = ?", (student_id,))
         if not cursor.fetchone():
             return {"status": "error", "message": f"Student ID {student_id} does not exist."}
 
-        # 3. Logic Validation: 
+        # 3. Logic Validation:
         cursor.execute("SELECT course_id FROM courses WHERE course_id = ?", (course_id,))
         if not cursor.fetchone():
             return {"status": "error", "message": f"Course ID {course_id} does not exist."}
 
         # 4. Duplicate Check:
         cursor.execute(
-            "SELECT enrollment_id FROM enrollments WHERE student_id = ? AND course_id = ?", 
+            "SELECT enrollment_id FROM enrollments WHERE student_id = ? AND course_id = ?",
             (student_id, course_id)
         )
         if cursor.fetchone():
@@ -129,30 +126,31 @@ def enroll_student(student_id: int, course_id: int) -> dict:
         return {"status": "error", "message": f"Database exception: {str(e)}"}
     finally:
         conn.close()
-      
+
+
 @mcp.tool(
     name="update_student_grade",
     description="Updates a student's grade for a specific course. Requires INSTRUCTOR or ADMIN role and strict input validation."
 )
 def update_student_grade(student_id: int, course_id: int, new_grade: float, requester_role: str) -> dict:
-    # 1. Authorization Check 
+    # 1. Authorization Check
     allowed_roles = ["INSTRUCTOR", "ADMIN"]
     if requester_role not in allowed_roles:
         return {
-            "status": "error", 
+            "status": "error",
             "message": f"Authorization denied. Role '{requester_role}' is not permitted to modify grades."
         }
 
-    # 2. Server-side Validation 
+    # 2. Server-side Validation
     if not (0.0 <= new_grade <= 100.0):
         return {
-            "status": "error", 
+            "status": "error",
             "message": "Invalid grade. Grade must be between 0.0 and 100.0."
         }
 
     if student_id <= 0 or course_id <= 0:
         return {
-            "status": "error", 
+            "status": "error",
             "message": "Student ID and Course ID must be positive integers."
         }
 
@@ -166,14 +164,14 @@ def update_student_grade(student_id: int, course_id: int, new_grade: float, requ
             (student_id, course_id)
         )
         enrollment = cursor.fetchone()
-        
+
         if not enrollment:
             return {
-                "status": "error", 
+                "status": "error",
                 "message": f"No active enrollment found for Student ID {student_id} in Course ID {course_id}."
             }
 
-        # 4. Perform Update 
+        # 4. Perform Update
         cursor.execute(
             "UPDATE enrollments SET grade = ?, status = 'COMPLETED' WHERE student_id = ? AND course_id = ?",
             (new_grade, student_id, course_id)
@@ -188,16 +186,17 @@ def update_student_grade(student_id: int, course_id: int, new_grade: float, requ
     except Exception as e:
         return {"status": "error", "message": f"Database exception: {str(e)}"}
     finally:
-        conn.close() 
+        conn.close()
+
 
 import time
+
 
 @mcp.tool(
     name="generate_academic_report",
     description="Generates a comprehensive academic report for all courses and students."
 )
 async def generate_academic_report(ctx: Context) -> dict:
-
     import asyncio
 
     await ctx.report_progress(progress=0, total=100)
@@ -213,13 +212,13 @@ async def generate_academic_report(ctx: Context) -> dict:
 
     conn = get_db_connection()
     cursor = conn.cursor()
-    
+
     cursor.execute("SELECT COUNT(*) as student_count FROM students")
     student_count = cursor.fetchone()["student_count"]
-    
+
     cursor.execute("SELECT COUNT(*) as course_count FROM courses")
     course_count = cursor.fetchone()["course_count"]
-    
+
     conn.close()
 
     return {
@@ -308,11 +307,14 @@ async def request_student_evaluation(student_id: int, ctx: Context) -> dict:
         "evaluation": response.text
     }
 
-@mcp.tool(
-    name="search_knowledge_base",
-    description="Searches the academy knowledge base using keyword retrieval."
-)
-def search_knowledge_base(query: str, top_k: int = 3) -> dict:
+
+def _search_knowledge_base_impl(query: str, top_k: int = 3) -> dict:
+    """Plain-Python search logic, pulled out of the search_knowledge_base
+    tool so it can be called directly from decompose_and_search (below)
+    without going back through the MCP protocol. FastMCP's @mcp.tool()
+    decorator returns a Tool object rather than the original function, so
+    the decorated tool itself isn't Python-callable -- this impl function
+    is the thing both the tool wrapper AND decompose_and_search call."""
 
     if top_k < 1:
         top_k = 1
@@ -351,6 +353,64 @@ def search_knowledge_base(query: str, top_k: int = 3) -> dict:
         "status": "success",
         "results": results
     }
+
+
+@mcp.tool(
+    name="search_knowledge_base",
+    description="Searches the academy knowledge base using keyword retrieval."
+)
+def search_knowledge_base(query: str, top_k: int = 3) -> dict:
+    return _search_knowledge_base_impl(query, top_k)
+
+
+@mcp.tool(
+    name="decompose_and_search",
+    description=(
+            "For compound, multi-part questions: splits the question into 2-4 "
+            "simpler sub-questions via an LLM call, runs the existing "
+            "search_knowledge_base once per sub-question, and returns every "
+            "matched chunk tagged with which sub-question it answers. Sits in "
+            "front of search_knowledge_base -- it does not replace it, and it "
+            "does not merge results into a single answer itself."
+    )
+)
+async def decompose_and_search(query: str, ctx: Context, top_k: int = 3) -> dict:
+    prompt = DECOMPOSE_PROMPT.format(query=query)
+
+    # The real LLM call: MCP sampling, same mechanism request_student_evaluation
+    # already uses above -- this repo has no external LLM API key/network
+    # egress configured, so ctx.sample() (the client-provided model) is the
+    # actual LLM client available here.
+    sample_response = await ctx.sample(messages=prompt, max_tokens=200)
+    sub_questions = parse_sub_questions(sample_response.text) or [query]
+
+    tagged_results = []
+    for sub_q in sub_questions:
+        sub_result = _search_knowledge_base_impl(sub_q, top_k)
+        for hit in sub_result.get("results", []):
+            tagged_results.append({
+                "sub_question": sub_q,
+                "title": hit["title"],
+                "content": hit["content"],
+                "score": hit["score"],
+            })
+
+    if not tagged_results:
+        return {
+            "status": "success",
+            "message": "No relevant documents found for any sub-question.",
+            "original_query": query,
+            "sub_questions": sub_questions,
+            "results": [],
+        }
+
+    return {
+        "status": "success",
+        "original_query": query,
+        "sub_questions": sub_questions,
+        "results": tagged_results,
+    }
+
 
 import sys
 
