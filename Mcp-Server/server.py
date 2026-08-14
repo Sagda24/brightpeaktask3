@@ -12,16 +12,11 @@ import sqlite3
 import os
 import re
 from fastmcp import FastMCP, Context
-<<<<<<< HEAD
-
-=======
 from rag.decompose_search import combine_search
->>>>>>> e8e4b65400287e84b473a30037bc1345c5541dc4
 from rank_bm25 import BM25Okapi
 from rag.hybrid_rag import hybrid_search
 from rag.agentic_rag import agentic_retrieve
 from rag.knowledge_base.loader import load_knowledge_base
-from rag.query_decomposition import DECOMPOSE_PROMPT, parse_sub_questions
 
 knowledge_documents = load_knowledge_base()
 tokenized_docs = [
@@ -59,6 +54,49 @@ def get_student_profile(email: str) -> dict:
     if not student:
         conn.close()
         return {"status": "error", "message": f"Student with email '{email}' not found."}
+
+    # 3. Fetching Enrolled Courses and Grades
+    query = """
+        SELECT c.title, e.grade, e.status 
+        FROM enrollments e
+        JOIN courses c ON e.course_id = c.course_id
+        WHERE e.student_id = ?
+    """
+    cursor.execute(query, (student["student_id"],))
+    courses = cursor.fetchall()
+    conn.close()
+
+    return {
+        "status": "success",
+        "data": {
+            "student_id": student["student_id"],
+            "name": student["name"],
+            "email": student["email"],
+            "role": student["role"],
+            "enrolled_courses": [dict(row) for row in courses]
+        }
+    }
+
+
+@mcp.tool(
+    name="get_student_profile_by_id",
+    description="Fetches a student's profile and enrolled courses by numeric student_id. Same data as get_student_profile, keyed by id instead of email."
+)
+def get_student_profile_by_id(student_id: int) -> dict:
+    # 1. Input Validation:
+    if student_id <= 0:
+        return {"status": "error", "message": "student_id must be a positive integer."}
+
+    conn = get_db_connection()
+    cursor = conn.cursor()
+
+    # 2. Logic Validation:
+    cursor.execute("SELECT * FROM students WHERE student_id = ?", (student_id,))
+    student = cursor.fetchone()
+
+    if not student:
+        conn.close()
+        return {"status": "error", "message": f"Student ID {student_id} not found."}
 
     # 3. Fetching Enrolled Courses and Grades
     query = """
@@ -324,14 +362,11 @@ async def request_student_evaluation(student_id: int, ctx: Context) -> dict:
     }
 
 
-def _search_knowledge_base_impl(query: str, top_k: int = 3) -> dict:
-    """Plain-Python search logic, pulled out of the search_knowledge_base
-    tool so it can be called directly from decompose_and_search (below)
-    without going back through the MCP protocol. FastMCP's @mcp.tool()
-    decorator returns a Tool object rather than the original function, so
-    the decorated tool itself isn't Python-callable -- this impl function
-    is the thing both the tool wrapper AND decompose_and_search call."""
-
+@mcp.tool(
+    name="search_knowledge_base",
+    description="Searches the academy knowledge base using keyword retrieval."
+)
+def search_knowledge_base(query: str, top_k: int = 3) -> dict:
     if top_k < 1:
         top_k = 1
 
@@ -370,46 +405,36 @@ def _search_knowledge_base_impl(query: str, top_k: int = 3) -> dict:
         "results": results
     }
 
-<<<<<<< HEAD
 
-@mcp.tool(
-    name="search_knowledge_base",
-    description="Searches the academy knowledge base using keyword retrieval."
-)
-def search_knowledge_base(query: str, top_k: int = 3) -> dict:
-    return _search_knowledge_base_impl(query, top_k)
-
-=======
 @mcp.tool(
     name="naive_rag",
     description=(
-        "Answers academic knowledge questions "
-        "using Naive RAG with vector retrieval "
-        "and Self-RAG verification."
+            "Answers academic knowledge questions "
+            "using Naive RAG with vector retrieval "
+            "and Self-RAG verification."
     )
 )
 async def naive_rag(
-    query: str,
-    ctx: Context
+        query: str,
+        ctx: Context
 ) -> dict:
-
     return await naive_rag_answer(
         query,
         ctx
     )
 
+
 @mcp.tool(
     name="hybrid_rag",
     description=(
-        "Retrieves academy knowledge using "
-        "vector similarity and BM25 keyword search."
+            "Retrieves academy knowledge using "
+            "vector similarity and BM25 keyword search."
     )
 )
 def hybrid_rag(
-    query: str,
-    top_k: int = 3
+        query: str,
+        top_k: int = 3
 ) -> dict:
-
     results = hybrid_search(
         query,
         top_k=top_k
@@ -420,18 +445,18 @@ def hybrid_rag(
         "results": results
     }
 
+
 @mcp.tool(
     name="hybrid_rag",
     description=(
-        "Retrieves academy knowledge using "
-        "vector similarity and BM25 keyword search."
+            "Retrieves academy knowledge using "
+            "vector similarity and BM25 keyword search."
     )
 )
 def hybrid_rag(
-    query: str,
-    top_k: int = 3
+        query: str,
+        top_k: int = 3
 ) -> dict:
-
     results = hybrid_search(
         query,
         top_k=top_k
@@ -441,60 +466,20 @@ def hybrid_rag(
         "status": "success",
         "results": results
     }
->>>>>>> e8e4b65400287e84b473a30037bc1345c5541dc4
+
 
 @mcp.tool(
     name="decompose_and_search",
     description=(
-<<<<<<< HEAD
-            "For compound, multi-part questions: splits the question into 2-4 "
-            "simpler sub-questions via an LLM call, runs the existing "
-            "search_knowledge_base once per sub-question, and returns every "
-            "matched chunk tagged with which sub-question it answers. Sits in "
-            "front of search_knowledge_base -- it does not replace it, and it "
-            "does not merge results into a single answer itself."
-    )
-)
-async def decompose_and_search(query: str, ctx: Context, top_k: int = 3) -> dict:
-    prompt = DECOMPOSE_PROMPT.format(query=query)
-
-    # The real LLM call: MCP sampling, same mechanism request_student_evaluation
-    # already uses above -- this repo has no external LLM API key/network
-    # egress configured, so ctx.sample() (the client-provided model) is the
-    # actual LLM client available here.
-    sample_response = await ctx.sample(messages=prompt, max_tokens=200)
-    sub_questions = parse_sub_questions(sample_response.text) or [query]
-
-    tagged_results = []
-    for sub_q in sub_questions:
-        sub_result = _search_knowledge_base_impl(sub_q, top_k)
-        for hit in sub_result.get("results", []):
-            tagged_results.append({
-                "sub_question": sub_q,
-                "title": hit["title"],
-                "content": hit["content"],
-                "score": hit["score"],
-            })
-
-    if not tagged_results:
-        return {
-            "status": "success",
-            "message": "No relevant documents found for any sub-question.",
-            "original_query": query,
-            "sub_questions": sub_questions,
-            "results": [],
-        }
-=======
-        "Decomposes a compound question into smaller sub-questions "
-        "and searches the knowledge base for each one."
+            "Decomposes a compound question into smaller sub-questions "
+            "and searches the knowledge base for each one."
     )
 )
 async def decompose_and_search(
-    query: str,
-    top_k: int = 3,
-    ctx: Context = None
+        query: str,
+        top_k: int = 3,
+        ctx: Context = None
 ) -> dict:
-
     if top_k < 1:
         top_k = 1
 
@@ -507,18 +492,10 @@ async def decompose_and_search(
         ctx=ctx,
         top_k=top_k
     )
->>>>>>> e8e4b65400287e84b473a30037bc1345c5541dc4
 
     return {
         "status": "success",
         "original_query": query,
-<<<<<<< HEAD
-        "sub_questions": sub_questions,
-        "results": tagged_results,
-    }
-
-
-=======
         "results": [
             {
                 "sub_question": result.sub_question,
@@ -529,7 +506,7 @@ async def decompose_and_search(
         ]
     }
 
->>>>>>> e8e4b65400287e84b473a30037bc1345c5541dc4
+
 import sys
 
 if __name__ == "__main__":
