@@ -1,0 +1,5 @@
+Configuration,Accuracy,Avg Iterations,Avg LLM Calls,Avg Tokens,Avg Latency (ms)
+Self-Refine / grounded,1.00,1.50,2.00,149.6,0.43
+Self-Refine / ungrounded,0.50,1.00,2.00,135.0,0.05
+Reflexion / grounded,1.00,1.50,2.50,204.0,0.39
+Reflexion / ungrounded,0.50,1.00,2.00,141.0,0.06

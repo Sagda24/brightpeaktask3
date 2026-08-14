@@ -1,0 +1,58 @@
+[
+  {
+    "case_id": "eligible_1",
+    "instruction": "check prerequisites for course 4",
+    "tool": "check_prerequisites",
+    "tool_args": {"student_id": 1, "course_id": 4},
+    "note": "Omar Khaled passed course 1 (95.5) -> genuinely eligible for course 4."
+  },
+  {
+    "case_id": "ineligible_1",
+    "instruction": "check prerequisites for course 4",
+    "tool": "check_prerequisites",
+    "tool_args": {"student_id": 7, "course_id": 4},
+    "note": "Kareem Reda dropped course 1 at 45.0 (below pass threshold) -> genuinely ineligible."
+  },
+  {
+    "case_id": "eligible_2",
+    "instruction": "check prerequisites for course 4",
+    "tool": "check_prerequisites",
+    "tool_args": {"student_id": 4, "course_id": 4},
+    "note": "Youssef Ibrahim passed course 1 (74.0) -> genuinely eligible for course 4."
+  },
+  {
+    "case_id": "ineligible_2",
+    "instruction": "check prerequisites for course 3",
+    "tool": "check_prerequisites",
+    "tool_args": {"student_id": 6, "course_id": 3},
+    "note": "Hoda Mansour has no record of course 1 at all -> genuinely ineligible for course 3."
+  },
+  {
+    "case_id": "eligible_3",
+    "instruction": "check prerequisites for course 2",
+    "tool": "check_prerequisites",
+    "tool_args": {"student_id": 1, "course_id": 2},
+    "note": "Omar Khaled passed both course 1 and course 3 -> genuinely eligible for course 2."
+  },
+  {
+    "case_id": "ineligible_3",
+    "instruction": "check prerequisites for course 2",
+    "tool": "check_prerequisites",
+    "tool_args": {"student_id": 8, "course_id": 2},
+    "note": "Salma Farouk has no record of course 1 or course 3 -> genuinely ineligible for course 2."
+  },
+  {
+    "case_id": "credit_within_limit",
+    "instruction": "check semester credit load for adding courses 2 and 4",
+    "tool": "credit_load",
+    "tool_args": {"student_id": 1, "additional_course_ids": [2, 4]},
+    "note": "4 + 3 = 7 credits, at the MAX_CREDITS_PER_SEMESTER=7 limit -> within limit."
+  },
+  {
+    "case_id": "credit_over_limit",
+    "instruction": "check semester credit load for adding courses 1, 2, 3 and 4",
+    "tool": "credit_load",
+    "tool_args": {"student_id": 1, "additional_course_ids": [1, 2, 3, 4]},
+    "note": "3 + 4 + 3 + 3 = 13 credits, over the MAX_CREDITS_PER_SEMESTER=7 limit -> NOT within limit."
+  }
+]

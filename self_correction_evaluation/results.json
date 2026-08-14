@@ -1,0 +1,354 @@
+{
+  "summary": {
+    "Self-Refine / grounded": {
+      "accuracy": 1.0,
+      "avg_iterations": 1.5,
+      "avg_llm_calls": 2.0,
+      "avg_tokens": 149.625,
+      "avg_latency_ms": 0.42657537498769216
+    },
+    "Self-Refine / ungrounded": {
+      "accuracy": 0.5,
+      "avg_iterations": 1.0,
+      "avg_llm_calls": 2.0,
+      "avg_tokens": 135.0,
+      "avg_latency_ms": 0.05445975000384351
+    },
+    "Reflexion / grounded": {
+      "accuracy": 1.0,
+      "avg_iterations": 1.5,
+      "avg_llm_calls": 2.5,
+      "avg_tokens": 204.0,
+      "avg_latency_ms": 0.39251675001850117
+    },
+    "Reflexion / ungrounded": {
+      "accuracy": 0.5,
+      "avg_iterations": 1.0,
+      "avg_llm_calls": 2.0,
+      "avg_tokens": 141.0,
+      "avg_latency_ms": 0.05643949999978304
+    }
+  },
+  "detail": [
+    {
+      "algorithm": "Self-Refine",
+      "feedback": "grounded",
+      "correct": true,
+      "iterations": 1,
+      "llm_calls": 1,
+      "tokens": 65,
+      "latency_ms": 0.5614869999703842,
+      "case_id": "eligible_1"
+    },
+    {
+      "algorithm": "Self-Refine",
+      "feedback": "grounded",
+      "correct": true,
+      "iterations": 2,
+      "llm_calls": 3,
+      "tokens": 235,
+      "latency_ms": 0.6138959999475446,
+      "case_id": "ineligible_1"
+    },
+    {
+      "algorithm": "Self-Refine",
+      "feedback": "grounded",
+      "correct": true,
+      "iterations": 1,
+      "llm_calls": 1,
+      "tokens": 65,
+      "latency_ms": 0.1399580000338574,
+      "case_id": "eligible_2"
+    },
+    {
+      "algorithm": "Self-Refine",
+      "feedback": "grounded",
+      "correct": true,
+      "iterations": 2,
+      "llm_calls": 3,
+      "tokens": 235,
+      "latency_ms": 0.5735010000194052,
+      "case_id": "ineligible_2"
+    },
+    {
+      "algorithm": "Self-Refine",
+      "feedback": "grounded",
+      "correct": true,
+      "iterations": 1,
+      "llm_calls": 1,
+      "tokens": 65,
+      "latency_ms": 0.16337799996790636,
+      "case_id": "eligible_3"
+    },
+    {
+      "algorithm": "Self-Refine",
+      "feedback": "grounded",
+      "correct": true,
+      "iterations": 2,
+      "llm_calls": 3,
+      "tokens": 241,
+      "latency_ms": 0.5488729999569841,
+      "case_id": "ineligible_3"
+    },
+    {
+      "algorithm": "Self-Refine",
+      "feedback": "grounded",
+      "correct": true,
+      "iterations": 1,
+      "llm_calls": 1,
+      "tokens": 69,
+      "latency_ms": 0.24545399998032735,
+      "case_id": "credit_within_limit"
+    },
+    {
+      "algorithm": "Self-Refine",
+      "feedback": "grounded",
+      "correct": true,
+      "iterations": 2,
+      "llm_calls": 3,
+      "tokens": 222,
+      "latency_ms": 0.566056000025128,
+      "case_id": "credit_over_limit"
+    },
+    {
+      "algorithm": "Self-Refine",
+      "feedback": "ungrounded",
+      "correct": true,
+      "iterations": 1,
+      "llm_calls": 2,
+      "tokens": 132,
+      "latency_ms": 0.0686810000161131,
+      "case_id": "eligible_1"
+    },
+    {
+      "algorithm": "Self-Refine",
+      "feedback": "ungrounded",
+      "correct": false,
+      "iterations": 1,
+      "llm_calls": 2,
+      "tokens": 132,
+      "latency_ms": 0.04964299995435795,
+      "case_id": "ineligible_1"
+    },
+    {
+      "algorithm": "Self-Refine",
+      "feedback": "ungrounded",
+      "correct": true,
+      "iterations": 1,
+      "llm_calls": 2,
+      "tokens": 132,
+      "latency_ms": 0.041300000020783045,
+      "case_id": "eligible_2"
+    },
+    {
+      "algorithm": "Self-Refine",
+      "feedback": "ungrounded",
+      "correct": false,
+      "iterations": 1,
+      "llm_calls": 2,
+      "tokens": 132,
+      "latency_ms": 0.112252000008084,
+      "case_id": "ineligible_2"
+    },
+    {
+      "algorithm": "Self-Refine",
+      "feedback": "ungrounded",
+      "correct": true,
+      "iterations": 1,
+      "llm_calls": 2,
+      "tokens": 132,
+      "latency_ms": 0.04675100001350074,
+      "case_id": "eligible_3"
+    },
+    {
+      "algorithm": "Self-Refine",
+      "feedback": "ungrounded",
+      "correct": false,
+      "iterations": 1,
+      "llm_calls": 2,
+      "tokens": 132,
+      "latency_ms": 0.03832900000588779,
+      "case_id": "ineligible_3"
+    },
+    {
+      "algorithm": "Self-Refine",
+      "feedback": "ungrounded",
+      "correct": true,
+      "iterations": 1,
+      "llm_calls": 2,
+      "tokens": 140,
+      "latency_ms": 0.03971400002455994,
+      "case_id": "credit_within_limit"
+    },
+    {
+      "algorithm": "Self-Refine",
+      "feedback": "ungrounded",
+      "correct": false,
+      "iterations": 1,
+      "llm_calls": 2,
+      "tokens": 148,
+      "latency_ms": 0.03900799998746152,
+      "case_id": "credit_over_limit"
+    },
+    {
+      "algorithm": "Reflexion",
+      "feedback": "grounded",
+      "correct": true,
+      "iterations": 1,
+      "llm_calls": 1,
+      "tokens": 71,
+      "latency_ms": 0.2426949999971839,
+      "case_id": "eligible_1"
+    },
+    {
+      "algorithm": "Reflexion",
+      "feedback": "grounded",
+      "correct": true,
+      "iterations": 2,
+      "llm_calls": 4,
+      "tokens": 336,
+      "latency_ms": 0.5384950000006938,
+      "case_id": "ineligible_1"
+    },
+    {
+      "algorithm": "Reflexion",
+      "feedback": "grounded",
+      "correct": true,
+      "iterations": 1,
+      "llm_calls": 1,
+      "tokens": 71,
+      "latency_ms": 0.2682820000359243,
+      "case_id": "eligible_2"
+    },
+    {
+      "algorithm": "Reflexion",
+      "feedback": "grounded",
+      "correct": true,
+      "iterations": 2,
+      "llm_calls": 4,
+      "tokens": 336,
+      "latency_ms": 0.6615780000061022,
+      "case_id": "ineligible_2"
+    },
+    {
+      "algorithm": "Reflexion",
+      "feedback": "grounded",
+      "correct": true,
+      "iterations": 1,
+      "llm_calls": 1,
+      "tokens": 71,
+      "latency_ms": 0.2579510000373375,
+      "case_id": "eligible_3"
+    },
+    {
+      "algorithm": "Reflexion",
+      "feedback": "grounded",
+      "correct": true,
+      "iterations": 2,
+      "llm_calls": 4,
+      "tokens": 342,
+      "latency_ms": 0.46611800001983283,
+      "case_id": "ineligible_3"
+    },
+    {
+      "algorithm": "Reflexion",
+      "feedback": "grounded",
+      "correct": true,
+      "iterations": 1,
+      "llm_calls": 1,
+      "tokens": 75,
+      "latency_ms": 0.2328410000131953,
+      "case_id": "credit_within_limit"
+    },
+    {
+      "algorithm": "Reflexion",
+      "feedback": "grounded",
+      "correct": true,
+      "iterations": 2,
+      "llm_calls": 4,
+      "tokens": 330,
+      "latency_ms": 0.47217400003773946,
+      "case_id": "credit_over_limit"
+    },
+    {
+      "algorithm": "Reflexion",
+      "feedback": "ungrounded",
+      "correct": true,
+      "iterations": 1,
+      "llm_calls": 2,
+      "tokens": 138,
+      "latency_ms": 0.05376300003945289,
+      "case_id": "eligible_1"
+    },
+    {
+      "algorithm": "Reflexion",
+      "feedback": "ungrounded",
+      "correct": false,
+      "iterations": 1,
+      "llm_calls": 2,
+      "tokens": 138,
+      "latency_ms": 0.07897199998296855,
+      "case_id": "ineligible_1"
+    },
+    {
+      "algorithm": "Reflexion",
+      "feedback": "ungrounded",
+      "correct": true,
+      "iterations": 1,
+      "llm_calls": 2,
+      "tokens": 138,
+      "latency_ms": 0.05053099999940969,
+      "case_id": "eligible_2"
+    },
+    {
+      "algorithm": "Reflexion",
+      "feedback": "ungrounded",
+      "correct": false,
+      "iterations": 1,
+      "llm_calls": 2,
+      "tokens": 138,
+      "latency_ms": 0.04148099998246835,
+      "case_id": "ineligible_2"
+    },
+    {
+      "algorithm": "Reflexion",
+      "feedback": "ungrounded",
+      "correct": true,
+      "iterations": 1,
+      "llm_calls": 2,
+      "tokens": 138,
+      "latency_ms": 0.039533000006031216,
+      "case_id": "eligible_3"
+    },
+    {
+      "algorithm": "Reflexion",
+      "feedback": "ungrounded",
+      "correct": false,
+      "iterations": 1,
+      "llm_calls": 2,
+      "tokens": 138,
+      "latency_ms": 0.08177199998726792,
+      "case_id": "ineligible_3"
+    },
+    {
+      "algorithm": "Reflexion",
+      "feedback": "ungrounded",
+      "correct": true,
+      "iterations": 1,
+      "llm_calls": 2,
+      "tokens": 146,
+      "latency_ms": 0.05873500003872323,
+      "case_id": "credit_within_limit"
+    },
+    {
+      "algorithm": "Reflexion",
+      "feedback": "ungrounded",
+      "correct": false,
+      "iterations": 1,
+      "llm_calls": 2,
+      "tokens": 154,
+      "latency_ms": 0.04672899996194246,
+      "case_id": "credit_over_limit"
+    }
+  ]
+}
