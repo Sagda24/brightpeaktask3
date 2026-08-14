@@ -95,122 +95,156 @@ on top of the same DAG produced here — `Node.suggested_method` is already
 populated (`"PS"` for the deterministic prerequisite check, `null` for the
 mechanical enroll step) so that routing layer has something real to key off.
 
+# Planning Algorithms
 
-# Registration & Degree-Progress Planning Agent
+This module implements the planning algorithms required for the Autonomous Agent project.
 
-A second, separate agent on top of the same `Mcp-Server/`, `DB/`, and reference
-toolkit already used by the memory/RAG agent (see the top-level `README.md`).
-This one owns a **planning** problem, not a retrieval problem.
+The planning layer is responsible for selecting an appropriate reasoning strategy for each decomposed sub-task and executing it through the available tools/environment.
 
-## The real problem
+## Implemented Algorithms
 
-Brightpeak students routinely email or message the registrar something like:
+### 1. Plan-and-Solve
 
-> "Please register me for Software Engineering Principles this semester."
+Plan-and-Solve uses a single explicit planning phase followed by sequential execution.
 
-Today nothing in the system can safely resolve that in one call. `enroll_student`
-will happily insert the enrollment row for *any* student/course pair — it does not
-check the academy's own written prerequisite policy (`PRE-001`), grading policy
-(`GRD-001`), or retake policy (`RET-001`) against the student's actual transcript.
-A human registrar currently has to: look up the student's transcript, work out
-whether the specific course's prerequisite chain is satisfied, decide (if not)
-whether the student needs to retake a failed prerequisite first, and only then
-enroll them — or reject/redirect the request. That's multiple dependent
-decisions, with a real cost to getting it wrong (an ineligible enrollment that
-violates policy and has to be manually unwound later).
+Flow:
 
-This is a genuinely different agent and a genuinely different concern from the
-memory/RAG agent, which answers policy *questions* ("what's the attendance
-policy?") — it never decides or executes a multi-step action on a student's
-academic record.
+User Task
+→ Understand
+→ Generate Plan
+→ Execute Plan
+→ Final Answer
 
-## What Person 1's slice covers (this file + `dag.py` / `decomposition.py` /
-`dynamic_decomposition.py` / `prerequisites.py` / `db_tools.py`)
+It is suitable for mostly linear tasks where the required steps are known in advance.
 
-- **`dag.py`** — the one place acyclicity is enforced (`DAG.add_node` /
-  `DAG.add_edge` both re-run a full topological sort and roll back on
-  `DAGCycleError`) and the one place run traces are serialized
-  (`DAG.save_trace` → `artifacts/<method>_<run_id>.json`).
-- **`prerequisites.py`** — the grounded facts the DB doesn't store
-  (prerequisite chain per course, pass threshold, credit ceiling), sourced
-  from the academy's own `PRE-001` / `GRD-001` policies.
-- **`db_tools.py`** — real handlers. `tool_enroll` and `tool_search_policy`
-  call the *existing* `Mcp-Server/server.py` tools directly (no duplicated
-  logic); `tool_check_prerequisites` and `tool_credit_load` are new grounded
-  checks against the real database, not an LLM's opinion.
-- **`decomposition.py`** — decomposition-first: one LLM call produces the
-  *whole* plan up front (`decompose_first`), which is then executed strictly
-  in topological order (`execute_dag`) with no re-planning.
-- **`dynamic_decomposition.py`** — dynamic/interleaved: one sub-task is
-  generated, executed against the real tool, and its real result is fed back
-  before the next sub-task is generated (`dynamic_decompose_and_execute`).
-  A course-of-action change is logged as a `replan` event in the trace.
+Characteristics:
+- Single plan
+- No branching
+- No backtracking
+- Low computational cost
+- Clear execution order
 
-## The divergence (`demo_divergence.py`)
+---
 
-Same request, same student (`student_id=7`, Kareem Reda — transcript shows a
-45.0/DROPPED attempt at *Introduction to Computer Science*, below the 60.0
-pass threshold), same target course (*Software Engineering Principles*, which
-requires passing *Introduction to Computer Science*):
+### 2. Tree of Thoughts (ToT)
 
-| Method | What happened | LLM calls | Tokens |
-|---|---|---|---|
-| Decomposition-first | Generated a fixed 3-step plan (`get_profile → check_prerequisites → enroll`) once. `check_prerequisites` correctly reported the student ineligible — but the plan had no branch for that, so `enroll` still ran next and **the ineligible enrollment succeeded anyway**. | 1 | 191 |
-| Dynamic decomposition | Generated `get_profile`, then `check_prerequisites`, observed the real `eligible: false` result, and generated a **new** step checking the missing prerequisite instead of proceeding to the originally requested enrollment. No bad enrollment was written. | 4 | 701 |
+Tree of Thoughts extends single-path reasoning into a search tree.
 
-Dynamic decomposition costs ~3.7x the tokens and 4x the LLM calls here — the
-real trade-off this lab asks for: decomposition-first is cheap and fine for
-the fully mechanical requests (e.g. a student who already meets every
-prerequisite), dynamic decomposition earns its extra cost specifically when a
-sub-task result can actually change what should happen next, which is exactly
-the shape of this request type.
-```
+Flow:
 
-Both commands run against a throwaway copy of `DB/db/brightpeak.db` — nothing
-is permanently written to the real academy database by the demo.
+Current State
+→ Generate Candidate Thoughts
+→ Evaluate Candidates
+→ Select Best Candidates
+→ Expand
+→ Repeat
 
-## Model provider
+The implementation uses beam search to control the number of branches explored.
 
-`llm_client.py` exposes one call signature (`call(prompt) -> LLMResponse`)
-behind three providers: `McpSamplingLLM` (production — reuses this repo's
-existing `ctx.sample()` pattern from `request_student_evaluation`),
-`AnthropicLLM` (for offline batch evaluation in `planning_eval/`), and
-`MockLLM` (deterministic, offline — used only by `demo_divergence.py` so the
-divergence above is reproducible without network/API access; **not** what the
-system ships with).
+Main parameters:
+- `beam_width`: number of candidates kept at each level
+- `depth`: maximum search depth
+- `n_candidates`: number of candidates generated per state
 
-## Not yet in this slice
+ToT is suitable for tasks where lookahead and exploration are important.
 
-Routing sub-tasks to Plan-and-Solve / Tree of Thoughts / LATS, Self-Refine /
-Reflexion, and the grounded-vs-ungrounded critique comparison are separate
-concerns (owned by the planning-algorithm and self-correction slices) that sit
-on top of the same DAG produced here — `Node.suggested_method` is already
-populated (`"PS"` for the deterministic prerequisite check, `null` for the
-mechanical enroll step) so that routing layer has something real to key off.
+Characteristics:
+- Multiple candidate plans
+- Branching
+- Candidate evaluation
+- Pruning
+- Backtracking/search
+- Higher cost than Plan-and-Solve
 
+---
 
-## Planning Algorithms
+### 3. Language Agent Tree Search (LATS)
 
-This layer sits **on top of the DAG produced by Person 1**. It does not replace
-the DAG/decomposition code.
+LATS combines language-model reasoning with Monte Carlo Tree Search (MCTS) and external environment feedback.
 
-### Files
+Flow:
 
-- `plan_and_solve.py` — one explicit plan, generated once, then executed in order.
-- `tree_of_thoughts.py` — generate/evaluate/select with beam search and backtracking.
-- `lats.py` — MCTS-style search using DB-backed external feedback. Enrollment is
-  never mutated during search; the environment only validates whether the action
-  is safe to execute.
-- `router.py` — chooses PS, ToT, or LATS from the decomposition's
-  `suggested_method`, task characteristics, and external-checkability.
-- `test_planning_algorithms.py` — unit tests for all three methods and routing.
-- `../planning_eval/` — fixed test suite and comparison runner.
+Select
+→ Expand + Simulate
+→ Evaluate with External Feedback
+→ Reflect on Failure
+→ Backpropagate
+→ Continue Search
 
-### Important integration rule
+Unlike ToT, LATS does not rely only on the language model to judge whether a solution is good. It uses feedback from the environment, such as validation results, tool results, tests, or database constraints.
 
-Use  routing layer **instead of** calling `execute_dag()` a second
-time. `route_dag()` runs the selected planning algorithm over the Person-1 DAG.
-For the final `enroll` action, LATS only approves the action after grounded
-validation; the actual mutating enrollment should be performed by the final
-executor after that approval.
+Characteristics:
+- MCTS-based search
+- Multiple action trajectories
+- External environment feedback
+- Reflection on failed branches
+- Backpropagation of rewards
+- Highest computational cost among the three methods
 
+---
+
+## Planning Router
+
+The router selects the planning algorithm based on the characteristics of the sub-task.
+
+### Routing Strategy
+
+- **Mostly linear task** → Plan-and-Solve
+- **Task requiring lookahead/exploration** → Tree of Thoughts
+- **Task with a checkable environment and external feedback** → LATS
+
+The router can also respect an explicitly suggested planning method provided by the decomposition/DAG layer.
+
+---
+
+## Integration with the DAG
+
+The planning module is designed to work after the decomposition layer.
+
+Overall flow:
+
+Goal
+→ Task Decomposition
+→ DAG
+→ Planning Router
+→ Plan-and-Solve / ToT / LATS
+→ Tool Execution
+→ Verification
+→ Final Result
+
+The DAG provides the sub-tasks and their dependencies, while the planning layer decides how each sub-task should be solved.
+
+---
+
+## Evaluation
+
+The `planning_eval` module compares the implemented planning algorithms using a fixed set of test cases.
+
+The evaluation considers:
+
+- Task success
+- Number of LLM calls
+- Token usage
+- Latency
+- Estimated cost
+
+The purpose of the evaluation is to determine which planning strategy provides the best trade-off between quality, reasoning capability, and computational cost.
+
+---
+
+## Files
+
+```text
+planning/
+├── plan_and_solve.py
+├── tree_of_thoughts.py
+├── lats.py
+├── router.py
+├── test_planning_algorithms.py
+└── README.md
+
+planning_eval/
+├── evaluate_planning.py
+├── test_cases.json
+├── results.json
+└── README.md
