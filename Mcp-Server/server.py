@@ -15,16 +15,40 @@ from fastmcp import FastMCP, Context
 from rag.decompose_search import combine_search
 from rank_bm25 import BM25Okapi
 from rag.hybrid_rag import hybrid_search
+import rag.hybrid_rag as hybrid_rag_module
 from rag.agentic_rag import agentic_retrieve
-from rag.knowledge_base.loader import load_knowledge_base
+from rag.naive_rag import naive_rag_answer
+import rag.naive_rag as naive_rag_module
+from rag.knowledge_base.loader import (
+    load_knowledge_base,
+    add_document as kb_add_document,
+    remove_document as kb_remove_document,
+    list_documents as kb_list_documents,
+)
 
-knowledge_documents = load_knowledge_base()
-tokenized_docs = [
-    doc["text"].lower().split()
-    for doc in knowledge_documents
-]
 
-bm25 = BM25Okapi(tokenized_docs)
+class _KeywordIndex:
+    """Holds the BM25 index used by search_knowledge_base.
+
+    This used to be three bare module-level globals (knowledge_documents,
+    tokenized_docs, bm25) built once at import time, which meant the
+    knowledge base could never change without restarting the process.
+    Wrapping them in one object with a rebuild() method is what lets
+    add_knowledge_document / remove_knowledge_document (below) refresh
+    keyword search without a restart.
+    """
+
+    def __init__(self):
+        self.rebuild()
+
+    def rebuild(self):
+        self.documents = load_knowledge_base()
+        tokenized = [doc["text"].lower().split() for doc in self.documents]
+        self.bm25 = BM25Okapi(tokenized)
+        return len(self.documents)
+
+
+keyword_index = _KeywordIndex()
 
 mcp = FastMCP("Brightpeak Academy Server")
 
@@ -168,6 +192,7 @@ def enroll_student(student_id: int, course_id: int) -> dict:
         )
         if cursor.fetchone():
             return {"status": "error", "message": "Student is already enrolled in this course."}
+
         # 5. Insert Enrollment Record
         cursor.execute(
             "INSERT INTO enrollments (student_id, course_id, status) VALUES (?, ?, 'ENROLLED')",
@@ -350,6 +375,7 @@ async def request_student_evaluation(student_id: int, ctx: Context) -> dict:
 
     Keep the response concise and professional.
     """
+
     # Ask the client model
     response = await ctx.sample(
         messages=prompt,
@@ -375,10 +401,10 @@ def search_knowledge_base(query: str, top_k: int = 3) -> dict:
 
     query_tokens = query.lower().split()
 
-    scores = bm25.get_scores(query_tokens)
+    scores = keyword_index.bm25.get_scores(query_tokens)
 
     ranked = sorted(
-        zip(scores, knowledge_documents),
+        zip(scores, keyword_index.documents),
         key=lambda x: x[0],
         reverse=True
     )
@@ -447,28 +473,6 @@ def hybrid_rag(
 
 
 @mcp.tool(
-    name="hybrid_rag",
-    description=(
-            "Retrieves academy knowledge using "
-            "vector similarity and BM25 keyword search."
-    )
-)
-def hybrid_rag(
-        query: str,
-        top_k: int = 3
-) -> dict:
-    results = hybrid_search(
-        query,
-        top_k=top_k
-    )
-
-    return {
-        "status": "success",
-        "results": results
-    }
-
-
-@mcp.tool(
     name="decompose_and_search",
     description=(
             "Decomposes a compound question into smaller sub-questions "
@@ -504,6 +508,279 @@ async def decompose_and_search(
             }
             for result in results
         ]
+    }
+
+
+# ============================================================
+# RAG document add/remove backend
+#
+# knowledge_base.json is the source of truth (rag/knowledge_base/loader.py
+# owns the actual read-modify-write). These three tools are the MCP-facing
+# surface over it, and are the ONLY way a document should be added or
+# removed at runtime: each write is followed by rebuilding every retrieval
+# index that was previously frozen at process start (this server's BM25
+# keyword index, naive_rag's embeddings/FAISS index, hybrid_rag's BM25
+# index) so search_knowledge_base / naive_rag / hybrid_rag / agentic
+# retrieval (which is built on top of naive_rag + hybrid_rag) all see the
+# change immediately, without a server restart.
+# ============================================================
+
+@mcp.tool(
+    name="list_knowledge_documents",
+    description="Lists the id, title and category of every document currently in the academic policy knowledge base."
+)
+def list_knowledge_documents() -> dict:
+    return {"status": "success", "documents": kb_list_documents()}
+
+
+@mcp.tool(
+    name="add_knowledge_document",
+    description=(
+        "Adds a new academic policy document to the knowledge base and "
+        "rebuilds keyword and vector retrieval so it is searchable "
+        "immediately. Requires ADMIN role."
+    )
+)
+def add_knowledge_document(
+    document_id: str,
+    title: str,
+    text: str,
+    requester_role: str,
+    category: str = "general",
+    department: str = "Academic Affairs",
+) -> dict:
+    if requester_role not in ("ADMIN",):
+        return {
+            "status": "error",
+            "message": f"Role '{requester_role}' is not permitted to modify the knowledge base."
+        }
+
+    try:
+        document = kb_add_document({
+            "id": document_id,
+            "title": title,
+            "text": text,
+            "category": category,
+            "department": department,
+        })
+    except ValueError as e:
+        return {"status": "error", "message": str(e)}
+
+    keyword_index.rebuild()
+    naive_rag_module.rebuild_vector_store()
+    hybrid_rag_module.rebuild_bm25()
+
+    return {
+        "status": "success",
+        "message": f"Document '{document_id}' added and retrieval indexes rebuilt.",
+        "document": document,
+    }
+
+
+@mcp.tool(
+    name="remove_knowledge_document",
+    description=(
+        "Removes an academic policy document from the knowledge base by id "
+        "and rebuilds keyword and vector retrieval. Requires ADMIN role."
+    )
+)
+def remove_knowledge_document(document_id: str, requester_role: str) -> dict:
+    if requester_role not in ("ADMIN",):
+        return {
+            "status": "error",
+            "message": f"Role '{requester_role}' is not permitted to modify the knowledge base."
+        }
+
+    removed = kb_remove_document(document_id)
+
+    if not removed:
+        return {
+            "status": "error",
+            "message": f"Document '{document_id}' not found."
+        }
+
+    keyword_index.rebuild()
+    naive_rag_module.rebuild_vector_store()
+    hybrid_rag_module.rebuild_bm25()
+
+    return {
+        "status": "success",
+        "message": f"Document '{document_id}' removed and retrieval indexes rebuilt.",
+    }
+
+
+# ============================================================
+# Runtime tool registration / removal
+#
+# FastMCP already supports adding/removing tools on a live server via
+# mcp.add_tool() / mcp.remove_tool() — see:
+# https://gofastmcp.com/servers/tools (Runtime Tool Management).
+# These two admin tools expose that safely: rather than registering
+# arbitrary code sent over the wire (an obvious injection risk), an admin
+# can only turn tools on/off from a fixed, reviewed catalog defined in
+# this file (_OPTIONAL_TOOLS), plus remove any currently active tool
+# (including core ones, if an admin needs to take one out of service).
+# list_registered_tools() lets the client discover what's active vs.
+# available before calling either one.
+# ============================================================
+
+def _tool_list_all_instructors() -> dict:
+    """Optional tool: not registered by default. Demonstrates a tool
+    being added to a running server without a restart."""
+    conn = get_db_connection()
+    cursor = conn.cursor()
+
+    cursor.execute("SELECT instructor_id, name FROM instructors")
+
+    rows = cursor.fetchall()
+    conn.close()
+
+    return {
+        "status": "success",
+        "instructors": [dict(row) for row in rows]
+    }
+
+
+def _tool_course_enrollment_counts() -> dict:
+    """Optional tool: not registered by default."""
+    conn = get_db_connection()
+    cursor = conn.cursor()
+
+    cursor.execute(
+        """
+        SELECT c.course_id, c.title, COUNT(e.enrollment_id) as enrolled_count
+        FROM courses c
+        LEFT JOIN enrollments e ON c.course_id = e.course_id
+        GROUP BY c.course_id
+        """
+    )
+
+    rows = cursor.fetchall()
+    conn.close()
+
+    return {
+        "status": "success",
+        "courses": [dict(row) for row in rows]
+    }
+
+
+_OPTIONAL_TOOLS = {
+    "list_all_instructors": {
+        "fn": _tool_list_all_instructors,
+        "description": "Lists every instructor's id and name.",
+    },
+
+    "course_enrollment_counts": {
+        "fn": _tool_course_enrollment_counts,
+        "description": "Lists every course with how many students are currently enrolled in it.",
+    },
+}
+
+
+@mcp.tool(
+    name="list_registered_tools",
+    description="Lists every tool currently active on this server, plus which optional tools from the catalog are available to register."
+)
+async def list_registered_tools() -> dict:
+
+    active = sorted((await mcp.get_tools()).keys())
+
+    return {
+        "status": "success",
+        "active_tools": active,
+        "registerable": [
+            name
+            for name in _OPTIONAL_TOOLS
+            if name not in active
+        ],
+    }
+
+
+@mcp.tool(
+    name="register_tool",
+    description=(
+        "Registers one of the optional catalog tools on this running server "
+        "at runtime, without a restart. Requires ADMIN role."
+    )
+)
+async def register_tool(tool_name: str, requester_role: str) -> dict:
+
+    if requester_role != "ADMIN":
+        return {
+            "status": "error",
+            "message": f"Role '{requester_role}' is not permitted to register tools."
+        }
+
+    if tool_name not in _OPTIONAL_TOOLS:
+        return {
+            "status": "error",
+            "message": (
+                f"'{tool_name}' is not in the optional tool catalog: "
+                f"{list(_OPTIONAL_TOOLS)}"
+            ),
+        }
+
+    active = await mcp.get_tools()
+
+    if tool_name in active:
+        return {
+            "status": "error",
+            "message": f"Tool '{tool_name}' is already registered."
+        }
+
+    entry = _OPTIONAL_TOOLS[tool_name]
+
+    mcp.add_tool(
+        entry["fn"],
+        name=tool_name,
+        description=entry["description"]
+    )
+
+    return {
+        "status": "success",
+        "message": f"Tool '{tool_name}' registered."
+    }
+
+
+@mcp.tool(
+    name="remove_tool",
+    description=(
+        "Removes a tool from this running server at runtime, without a "
+        "restart. Requires ADMIN role. Cannot remove register_tool, "
+        "remove_tool or list_registered_tools themselves."
+    )
+)
+async def remove_tool(tool_name: str, requester_role: str) -> dict:
+
+    if requester_role != "ADMIN":
+        return {
+            "status": "error",
+            "message": f"Role '{requester_role}' is not permitted to remove tools."
+        }
+
+    if tool_name in (
+        "register_tool",
+        "remove_tool",
+        "list_registered_tools"
+    ):
+        return {
+            "status": "error",
+            "message": f"Refusing to remove admin tool '{tool_name}'."
+        }
+
+    active = await mcp.get_tools()
+
+    if tool_name not in active:
+        return {
+            "status": "error",
+            "message": f"Tool '{tool_name}' is not currently registered."
+        }
+
+    mcp.remove_tool(tool_name)
+
+    return {
+        "status": "success",
+        "message": f"Tool '{tool_name}' removed."
     }
 
 
